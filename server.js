@@ -98,13 +98,10 @@ app.get('/chords', async (req, res) => {
 
 // === SONGS ===
 app.get('/songs', async (req, res) => {
-  try {
-    const { rows } = await pool.query('SELECT * FROM songs');
-    res.json(rows);
-  } catch (err) {
-    console.error('SONGS ERROR:', err);
-    res.status(500).json({ error: err.message });
-  }
+  const { rows } = await pool.query(
+    'SELECT * FROM songs WHERE is_public=true ORDER BY created_at DESC'
+  );
+  res.json(rows);
 });
 
 app.get('/songs/:id', async (req, res) => {
