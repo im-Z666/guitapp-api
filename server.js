@@ -55,59 +55,69 @@ app.get('/', (req, res) => {
 });
 
 // ========================
-// AUTH
-// ========================
 app.post('/auth/register', async (req, res) => {
   try {
-    const { username, email, password, display_name } = req.body;
+    const {
+      username,
+      first_name,
+      surname,
+      age,
+      email,
+      password
+    } = req.body;
+
+    // validation
+    if (
+      !username ||
+      !first_name ||
+      !surname ||
+      !age ||
+      !email ||
+      !password
+    ) {
+      return res.status(400).json({
+        error: 'All fields are required'
+      });
+    }
 
     const hash = await bcrypt.hash(password, 10);
 
     const { rows } = await pool.query(
-      `INSERT INTO users(username,email,password_hash,display_name)
-       VALUES($1,$2,$3,$4)
-       RETURNING user_id, username, email, display_name`,
-      [username, email, hash, display_name]
+      `
+      INSERT INTO users(
+        username,
+        email,
+        password_hash,
+        first_name,
+        surname,
+        age
+      )
+      VALUES($1,$2,$3,$4,$5,$6)
+      RETURNING
+        user_id,
+        username,
+        email,
+        first_name,
+        surname,
+        age
+      `,
+      [
+        username,
+        email,
+        hash,
+        first_name,
+        surname,
+        age
+      ]
     );
 
-    res.json(rows[0]);
-  } catch (e) {
-    console.error(e);
-    res.status(400).json({ error: e.message });
-  }
-});
+    res.status(201).json(rows[0]);
 
-app.post('/auth/login', async (req, res) => {
-  try {
-    const { email, password } = req.body;
-
-    const { rows } = await pool.query(
-      'SELECT * FROM users WHERE email=$1',
-      [email]
-    );
-
-    const user = rows[0];
-
-    if (!user) {
-      return res.status(401).json({ error: 'Invalid credentials' });
-    }
-
-    const ok = await bcrypt.compare(password, user.password_hash);
-
-    if (!ok) {
-      return res.status(401).json({ error: 'Invalid credentials' });
-    }
-
-    const token = jwt.sign(
-      { user_id: user.user_id },
-      process.env.JWT_SECRET,
-      { expiresIn: '30d' }
-    );
-
-    res.json({ token });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: err.message });
+    res.status(400).json({
+      error: err.message
+    });
   }
 });
 
